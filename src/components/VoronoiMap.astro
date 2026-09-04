@@ -1,0 +1,297 @@
+<div id="map"></div>
+
+<style>
+    #map {
+        width: 100vw;
+        height: 100vh;
+    }
+</style>
+
+<script>
+    import "leaflet/dist/leaflet.css";
+    import L from "leaflet";
+    import * as turf from "@turf/turf";
+    import laMatanzaData from "../data/laMatanzaData.json";
+
+    import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png?url";
+    import iconUrl from "leaflet/dist/images/marker-icon.png?url";
+    import shadowUrl from "leaflet/dist/images/marker-shadow.png?url";
+
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+        iconRetinaUrl,
+        iconUrl,
+        shadowUrl,
+    });
+
+    const latLaMatanza = -34.7703;
+    const lngLaMatanza = -58.6254;
+
+    const map = L.map("map").setView([latLaMatanza, lngLaMatanza], 12);
+
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+
+    requestAnimationFrame(() => {
+        map.invalidateSize();
+    });
+
+    const comisarias = [
+        {
+            nombre: "Subcomisaría Aldo Bonzi",
+            dir: "Aldo Bonzi",
+            lat: -34.705919,
+            lng: -58.511015,
+        },
+        {
+            nombre: "Comisaría La Matanza ESTE 2°",
+            dir: "Altos de Laferrere",
+            lat: -34.730542,
+            lng: -58.592285,
+        },
+        {
+            nombre: "Comisaría La Matanza NOROESTE 5°",
+            dir: "Don Bosco",
+            lat: -34.658433,
+            lng: -58.5549,
+        },
+        {
+            nombre: "Comisaría La Matanza SUR 1°",
+            dir: "González Catán",
+            lat: -34.684158,
+            lng: -58.492942,
+        },
+        {
+            nombre: "Comisaría La Matanza ESTE 1°",
+            dir: "Gregorio de Laferrere",
+            lat: -34.740456,
+            lng: -58.57183,
+        },
+        {
+            nombre: "Comisaría La Matanza OESTE 1°",
+            dir: "Isidro Casanova",
+            lat: -34.699817,
+            lng: -58.586032,
+        },
+        {
+            nombre: "Comisaría La Matanza NORESTE 3°",
+            dir: "La Tablada",
+            lat: -34.683272,
+            lng: -58.52814,
+        },
+        {
+            nombre: "Comisaría La Matanza NOROESTE 6°",
+            dir: "Lomas del Millón",
+            lat: -34.647213,
+            lng: -58.545763,
+        },
+        {
+            nombre: "Comisaría La Matanza NORESTE 2°",
+            dir: "Lomas del Mirador",
+            lat: -34.664429,
+            lng: -58.521509,
+        },
+        {
+            nombre: "Comisaría La Matanza NORESTE 5°",
+            dir: "Mercado Central",
+            lat: -34.705639,
+            lng: -58.492176,
+        },
+        {
+            nombre: "Comisaría La Matanza OESTE 3°",
+            dir: "Rafael Castillo",
+            lat: -34.688849,
+            lng: -58.617358,
+        },
+        {
+            nombre: "Comisaría La Matanza OESTE 4°",
+            dir: "San Alberto",
+            lat: -34.713351,
+            lng: -58.573128,
+        },
+        {
+            nombre: "Comisaría La Matanza OESTE 2°",
+            dir: "San Carlos",
+            lat: -34.709205,
+            lng: -58.602807,
+        },
+        {
+            nombre: "Comisaría La Matanza NOROESTE 1°",
+            dir: "San Justo",
+            lat: -34.677107,
+            lng: -58.561658,
+        },
+        {
+            nombre: "Comisaría La Matanza NORESTE 4°",
+            dir: "Tapiales",
+            lat: -34.698249,
+            lng: -58.5071,
+        },
+        {
+            nombre: "Comisaría La Matanza NORESTE 1°",
+            dir: "Vi (Villa Celina)",
+            lat: -34.684854,
+            lng: -58.50386,
+        },
+        {
+            nombre: "Comisaría La Matanza NOROESTE 3°",
+            dir: "Villa Luzuriaga",
+            lat: -34.658077,
+            lng: -58.585638,
+        },
+        {
+            nombre: "Comisaría La Matanza NORESTE 6°",
+            dir: "Villa Recondo",
+            lat: -34.691915,
+            lng: -58.480913,
+        },
+        {
+            nombre: "Comisaría La Matanza SUR 3°",
+            dir: "Virrey Dorrego",
+            lat: -34.784546,
+            lng: -58.600187,
+        },
+        {
+            nombre: "Comisaría La Matanza SUR 2°",
+            dir: "Virrey del Pino",
+            lat: -34.804167,
+            lng: -58.632415,
+        },
+        {
+            nombre: "Comisaría La Matanza NOROESTE 2°",
+            dir: "Localidad no informada",
+            lat: -34.645791,
+            lng: -58.564816,
+        },
+    ];
+
+    const laMatanzaFeature = laMatanzaData.features[0] as any;
+
+    const geoJSONPoints = turf.featureCollection(
+        comisarias.map((c) =>
+            turf.point([c.lng, c.lat], { nombre: c.nombre, dir: c.dir }),
+        ),
+    );
+
+    const bboxLaMatanza = turf.bbox(laMatanzaFeature);
+    const colours = [
+        "#3b82f6",
+        "#10b981",
+        "#f59e0b",
+        "#ef4444",
+        "#8b5cf6",
+        "#ec4899",
+        "#06b6d4",
+        "#84cc16",
+        "#14b8a6",
+        "#6366f1",
+    ];
+    const clippedCells: any[] = [];
+
+    const voronoiPolygons = turf.voronoi(geoJSONPoints, {
+        bbox: bboxLaMatanza as any,
+    });
+
+    voronoiPolygons.features.forEach((celda, i) => {
+        if (!celda) return;
+        celda.properties = {
+            ...comisarias[i],
+            color: colours[i % colours.length],
+        };
+        clippedCells.push(celda);
+    });
+    const voronoiWithLimits = () => {
+        const newVoronoi = structuredClone(voronoiPolygons);
+        newVoronoi.features.forEach((celda, i) => {
+            if (!celda) return;
+
+            let interseccion = null;
+            try {
+                interseccion = turf.intersect(
+                    turf.featureCollection([celda, laMatanzaFeature]),
+                );
+            } catch {
+                interseccion = (turf as any).intersect(celda, laMatanzaFeature);
+            }
+
+            if (interseccion) {
+                interseccion.properties = {
+                    ...comisarias[i],
+                    color: colours[i % colours.length],
+                };
+                newVoronoi.features[i] = interseccion;
+            }
+        });
+        return newVoronoi;
+    };
+
+    const voronoiLayerWithLimits = L.geoJSON(
+        turf.featureCollection(voronoiWithLimits().features) as any,
+        {
+            style: (feature) => ({
+                fillColor: feature?.properties.color,
+                fillOpacity: 0.35,
+                color: "#1e293b",
+                weight: 1.5,
+            }),
+            onEachFeature: (feature, layer) => {
+                layer.bindTooltip(
+                    `<b>Jurisdicción más cercana:</b><br>${feature.properties.nombre}`,
+                    { sticky: true },
+                );
+            },
+        },
+    ).addTo(map);
+
+    const voronoiLayer = L.geoJSON(
+        turf.featureCollection(clippedCells) as any,
+        {
+            style: (feature) => ({
+                fillColor: feature?.properties.color,
+                fillOpacity: 0.35,
+                color: "#1e293b",
+                weight: 1.5,
+            }),
+            onEachFeature: (feature, layer) => {
+                layer.bindTooltip(
+                    `<b>Jurisdicción más cercana:</b><br>${feature.properties.nombre}`,
+                    { sticky: true },
+                );
+            },
+        },
+    ).addTo(map);
+
+    const limiteLayer = L.geoJSON(laMatanzaFeature, {
+        style: {
+            color: "#dc2626",
+            weight: 2,
+            dashArray: "5, 5",
+            fillOpacity: 0,
+        },
+    }).addTo(map);
+
+    const markersLayer = L.layerGroup(
+        comisarias.map((c) =>
+            L.marker([c.lat, c.lng]).bindPopup(
+                `<b>👮 ${c.nombre}</b><br>📍 ${c.dir}`,
+            ),
+        ),
+    ).addTo(map);
+
+    L.control
+        .layers(
+            undefined,
+            {
+                "🔵 Diagrama Voronoi": voronoiLayer,
+                "Diagrama Voronoi con limite municipal": voronoiLayerWithLimits,
+                "👮 Comisarías": markersLayer,
+                "🗺️ Límite municipal": limiteLayer,
+            },
+            { collapsed: false },
+        )
+        .addTo(map);
+    map.fitBounds(limiteLayer.getBounds());
+</script>
